@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:libTestFlight.a"
+      assignedFileDataType = "com.apple.mach-o-object">
+   </FileRef>
+   <FileRef
+      location = "container:Mosaic eReader/Mosaic eReader.xcodeproj">
+   </FileRef>
+</Workspace>

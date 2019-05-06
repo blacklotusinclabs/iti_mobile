@@ -1,0 +1,465 @@
+Index: Mosaic eReader/Mosaic eReader.xcodeproj/xcuserdata/heron.xcuserdatad/xcdebugger/Breakpoints.xcbkptlist
+===================================================================
+--- Mosaic eReader/Mosaic eReader.xcodeproj/xcuserdata/heron.xcuserdatad/xcdebugger/Breakpoints.xcbkptlist	(revision 59)
++++ Mosaic eReader/Mosaic eReader.xcodeproj/xcuserdata/heron.xcuserdatad/xcdebugger/Breakpoints.xcbkptlist	(working copy)
+@@ -33,11 +33,11 @@
+          continueAfterRunningActions = "No"
+          isPathRelative = "1"
+          filePath = "Classes/BookshelfViewController.m"
+-         timestampString = "357551632.127602"
++         timestampString = "357973161.870274"
+          startingColumnNumber = "9223372036854775807"
+          endingColumnNumber = "9223372036854775807"
+-         startingLineNumber = "1445"
+-         endingLineNumber = "1445">
++         startingLineNumber = "1535"
++         endingLineNumber = "1535">
+       </FileBreakpoint>
+       <FileBreakpoint
+          shouldBeEnabled = "No"
+@@ -45,11 +45,11 @@
+          continueAfterRunningActions = "No"
+          isPathRelative = "1"
+          filePath = "Classes/BookshelfViewController.m"
+-         timestampString = "357551632.127602"
++         timestampString = "357973161.870274"
+          startingColumnNumber = "9223372036854775807"
+          endingColumnNumber = "9223372036854775807"
+-         startingLineNumber = "1440"
+-         endingLineNumber = "1440">
++         startingLineNumber = "1530"
++         endingLineNumber = "1530">
+       </FileBreakpoint>
+       <FileBreakpoint
+          shouldBeEnabled = "No"
+@@ -57,11 +57,11 @@
+          continueAfterRunningActions = "No"
+          isPathRelative = "1"
+          filePath = "Classes/BookshelfViewController.m"
+-         timestampString = "357551632.127602"
++         timestampString = "357973161.870274"
+          startingColumnNumber = "9223372036854775807"
+          endingColumnNumber = "9223372036854775807"
+-         startingLineNumber = "1384"
+-         endingLineNumber = "1384">
++         startingLineNumber = "1474"
++         endingLineNumber = "1474">
+       </FileBreakpoint>
+       <FileBreakpoint
+          shouldBeEnabled = "No"
+@@ -245,13 +245,26 @@
+          shouldBeEnabled = "Yes"
+          ignoreCount = "0"
+          continueAfterRunningActions = "No"
++         filePath = "Classes/BookshelfViewController.m"
++         timestampString = "357973161.870274"
++         startingColumnNumber = "9223372036854775807"
++         endingColumnNumber = "9223372036854775807"
++         startingLineNumber = "646"
++         endingLineNumber = "646"
++         landmarkName = "-tableView:cellForRowAtIndexPath:"
++         landmarkType = "5">
++      </FileBreakpoint>
++      <FileBreakpoint
++         shouldBeEnabled = "No"
++         ignoreCount = "0"
++         continueAfterRunningActions = "No"
+          filePath = "Classes/MLDataStore.m"
+-         timestampString = "357549516.178128"
++         timestampString = "357976946.293266"
+          startingColumnNumber = "9223372036854775807"
+          endingColumnNumber = "9223372036854775807"
+-         startingLineNumber = "1446"
+-         endingLineNumber = "1446"
+-         landmarkName = "-bookIsDoneCaching:"
++         startingLineNumber = "752"
++         endingLineNumber = "752"
++         landmarkName = "-addAvailableBook:"
+          landmarkType = "5">
+       </FileBreakpoint>
+       <FileBreakpoint
+@@ -259,12 +272,12 @@
+          ignoreCount = "0"
+          continueAfterRunningActions = "No"
+          filePath = "Classes/BookshelfViewController.m"
+-         timestampString = "357551064.066084"
++         timestampString = "357981274.243861"
+          startingColumnNumber = "9223372036854775807"
+          endingColumnNumber = "9223372036854775807"
+-         startingLineNumber = "389"
+-         endingLineNumber = "389"
+-         landmarkName = "-refreshData"
++         startingLineNumber = "763"
++         endingLineNumber = "763"
++         landmarkName = "-tableView:didSelectRowAtIndexPath:"
+          landmarkType = "5">
+       </FileBreakpoint>
+    </FileBreakpoints>
+Index: Mosaic eReader/Mosaic eReader.xcodeproj/project.xcworkspace/xcuserdata/heron.xcuserdatad/UserInterfaceState.xcuserstate
+===================================================================
+Cannot display: file marked as a binary type.
+svn:mime-type = application/octet-stream
+Index: Mosaic eReader/Classes/MLAPICommunicator.m
+===================================================================
+--- Mosaic eReader/Classes/MLAPICommunicator.m	(revision 58)
++++ Mosaic eReader/Classes/MLAPICommunicator.m	(working copy)
+@@ -204,6 +204,13 @@
+             [accessibleBooks addObject: book];
+         }
+         
++        /*
++        for(MLBook *book in booksArray)
++		{
++			[[MLDataStore sharedInstance] addNotAvailableBook: book];
++		}
++        */
++        
+         [[MLDataStore sharedInstance] setAccessibleBooks: accessibleBooks];
+         
+         // Remove available books from list.
+@@ -572,8 +579,7 @@
+         // add book and key...
+         [dataStore removeAvailableBook: book.bookId];
+         [dataStore addBook: book]; 
+-        [dataStore addKey: key
+-                forBookId: book.bookId];
++        [dataStore addKey: key forBookId: book.bookId];
+         [dataStore commitToStorage];
+         
+         [self performSelectorOnMainThread: @selector(_downloadedBookData:) withObject: book waitUntilDone: NO];
+Index: Mosaic eReader/Classes/BookshelfViewController.h
+===================================================================
+--- Mosaic eReader/Classes/BookshelfViewController.h	(revision 40)
++++ Mosaic eReader/Classes/BookshelfViewController.h	(working copy)
+@@ -15,9 +15,6 @@
+ 
+ @interface BookshelfViewController : UIViewController <MLAPIComminicatorDelegate> 
+ {
+-    NSMutableArray *subscribed;
+-	NSArray *available;
+-	NSArray *allBooks;
+ 	MLBook *publication;
+ 	int displayMode;
+ 	int selectedTab;
+@@ -30,9 +27,6 @@
+ 	double currentPerc;
+     NSTimeInterval timeInterval;
+     double percentageIncrease;
+-    
+-    //NSFetchedResultsController *fetchedResultsController;
+-	//NSManagedObjectContext *managedObjectContext;
+ 	
+ 	// External display...
+     IBOutlet UIWindow *externalWindow;	
+@@ -44,9 +38,6 @@
+     UIPopoverController *advancedSearchPopover;
+     AdvancedSearchViewController *advancedSearchController;
+     
+-    // Queue
+-    //ASI
+-    
+     LoadingView *loadingView;
+ }
+ 
+Index: Mosaic eReader/Classes/BookshelfViewController.m
+===================================================================
+--- Mosaic eReader/Classes/BookshelfViewController.m	(revision 59)
++++ Mosaic eReader/Classes/BookshelfViewController.m	(working copy)
+@@ -43,11 +43,13 @@
+ 
+ - (void)dealloc
+ {
++    /*
+ 	[subscribed release];
+ 	[available release];
+ 	[allBooks release];
++     */
++    [[NSNotificationCenter defaultCenter] removeObserver: self];
+ 	[super dealloc];
+-    [[NSNotificationCenter defaultCenter] removeObserver: self];
+ }
+ 
+ #pragma mark - View lifecycle
+@@ -106,6 +108,7 @@
+     timeInterval = 1.0;
+     percentageIncrease = 0.02;
+     currentPerc = 0.0;
++    [controllerTableView reloadData];
+ }
+ 
+ - (void)handleNotification: (NSNotification *)notif
+@@ -178,6 +181,13 @@
+ 
+ - (IBAction) searchLibrary: (id)sender
+ {
++    NSArray *subscribed = 
++        [[[MLDataStore sharedInstance] allDownloadedBooks] mutableCopy];
++    NSArray *available = 
++        [[[MLDataStore sharedInstance] allAvailableBooks] mutableCopy];
++    NSArray *allBooks =
++        [[[MLDataStore sharedInstance] allNotAvailableBooks] mutableCopy];
++    
+ 	[searchField endEditing: YES];
+     
+ 	if(displayMode == 0)
+@@ -361,55 +371,67 @@
+ 
+ - (void) refreshData
+ {
+-   // [[MLAPICommunicator sharedCommunicator] clear];
+-	if([searchField.text isEqualToString: @""] == NO &&
+-	   searchField.text != nil)
+-	{
+-		return;
+-	}
+-	
+-	[subscribed release];
+-	[available release];
+-	[allBooks release];
+-	
+-    [[MLDataStore sharedInstance] clearStoreExceptUserBooks];
+-    
+-	subscribed = [[MLAPICommunicator sharedCommunicator] 
+-	 			  retrieveDownloadedBooks];
+-	available = [[MLAPICommunicator sharedCommunicator]
+-				 retrieveListOfAvailableBooks];
+-	allBooks =  [[MLAPICommunicator sharedCommunicator]	
+-				 retrieveListOfNotAvailableBooks];
+-    
+-    NSArray *accessibleBooks = [[MLDataStore sharedInstance] accessibleBooks];
+-    for(MLBook *book in [NSArray arrayWithArray: accessibleBooks])
++    NS_DURING
+     {
+-        if([accessibleBooks containsObject: book] == NO)
++        // [[MLAPICommunicator sharedCommunicator] clear];
++        if([searchField.text isEqualToString: @""] == NO &&
++           searchField.text != nil)
+         {
+-            [[MLDataStore sharedInstance] removeBook:book.bookId];
++            return;
+         }
+-    }
+-    
+-    for(MLBook *book in [NSArray arrayWithArray:available])
+-    {
+-        if([subscribed containsObject:book] == NO)
++        
++        [[MLDataStore sharedInstance] clearStoreExceptUserBooks];
++        
++        NSMutableArray *subscribed = [[MLAPICommunicator sharedCommunicator] 
++                      retrieveDownloadedBooks];
++        NSArray *available = [[MLAPICommunicator sharedCommunicator]
++                     retrieveListOfAvailableBooks];
++        NSArray *allBooks =  [[MLAPICommunicator sharedCommunicator]	
++                     retrieveListOfNotAvailableBooks];
++        
++        NSArray *accessibleBooks = [[MLDataStore sharedInstance] accessibleBooks];
++        for(MLBook *book in [NSArray arrayWithArray: accessibleBooks])
+         {
+-            [[MLDataStore sharedInstance] removeAvailableBook:book.bookId];
++            if([accessibleBooks containsObject: book] == NO)
++            {
++                [[MLDataStore sharedInstance] removeBook:book.bookId];
++            }
+         }
++        
++        for(MLBook *book in [NSArray arrayWithArray:available])
++        {
++            if([subscribed containsObject:book] == NO)
++            {
++                [[MLDataStore sharedInstance] removeAvailableBook:book.bookId];
++            }
++        }
++        
++        // Pre-cache the cover art for all books...
++        MLAPICommunicator *communicator = [MLAPICommunicator sharedCommunicator];
++        [communicator retrieveThumbnailsForPublications: subscribed];
++        [communicator retrieveThumbnailsForPublications: available];
++        [communicator retrieveThumbnailsForPublications: allBooks];
++        
++        
++        [subscribed retain];
++        [available retain];
++        [allBooks retain];
++        
++        [controllerTableView reloadData];
+     }
+-    
+-    // Pre-cache the cover art for all books...
+-    MLAPICommunicator *communicator = [MLAPICommunicator sharedCommunicator];
+-    [communicator retrieveThumbnailsForPublications: subscribed];
+-    [communicator retrieveThumbnailsForPublications: available];
+-    [communicator retrieveThumbnailsForPublications: allBooks];
+-    
+-    
+-	[subscribed retain];
+-	[available retain];
+-	[allBooks retain];
+-	
+-	[controllerTableView reloadData];
++    NS_HANDLER
++    {
++        UIAlertView *alert = [[[UIAlertView alloc] 
++                               initWithTitle: @"Session invalid"
++                               message: @"Previous session expired, Please restart the application and log back in."                                
++                               delegate: self
++                               cancelButtonTitle: @"OK" 
++                               otherButtonTitles: nil,nil]
++                              autorelease];            
++        [alert setTag:66];
++        [alert show];    
++    }
++    NS_ENDHANDLER;
+ }
+ 
+ - (void) _reloadTable
+@@ -445,6 +467,10 @@
+ - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+     NSInteger count = 0;
+     
++    NSArray *subscribed = [[MLDataStore sharedInstance] allDownloadedBooks];
++    NSArray *allBooks = [[MLDataStore sharedInstance] allNotAvailableBooks];
++    NSArray *available = [[MLDataStore sharedInstance] allAvailableBooks];
++    
+ 	if(selectedTab == 0) // My Library
+ 	{
+ 		count = [subscribed count];
+@@ -463,7 +489,12 @@
+ 
+ 
+ // Customize the number of rows in the table view.
+-- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
++- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
++{
++    NSArray *subscribed = [[MLDataStore sharedInstance] allDownloadedBooks];
++    NSArray *allBooks = [[MLDataStore sharedInstance] allNotAvailableBooks];
++    NSArray *available = [[MLDataStore sharedInstance] allAvailableBooks];
++
+ 	NSInteger rows = 0;
+     NSInteger cols = 4;
+     
+@@ -581,10 +612,14 @@
+ 	return cell;
+ }
+ 
+-- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath 
++- (UITableViewCell *)tableView:(UITableView *)tableView 
++         cellForRowAtIndexPath:(NSIndexPath *)indexPath 
+ {
+     NSInteger cols = 4;
+-    
++    NSArray *subscribed = [[MLDataStore sharedInstance] allDownloadedBooks];
++    NSArray *allBooks = [[MLDataStore sharedInstance] allNotAvailableBooks];
++    NSArray *available = [[MLDataStore sharedInstance] allAvailableBooks];
++
+     if(UIDeviceOrientationIsLandscape(self.interfaceOrientation))
+     {
+         cols = 6;
+@@ -603,17 +638,17 @@
+ 		if(selectedTab == 0)
+ 		{
+ 			flag = 0;
+-			array = subscribed;
++			array = [[MLDataStore sharedInstance] allDownloadedBooks];
+ 		}
+ 		else if(selectedTab == 2)
+ 		{
+ 			flag = UNSUBFLAG;
+-			array = available;
++			array = [[MLDataStore sharedInstance] allAvailableBooks];
+ 		}
+ 		else
+ 		{
+ 			flag = UNSUBFLAG;
+-			array = allBooks;
++			array = [[MLDataStore sharedInstance] allNotAvailableBooks];
+ 		}
+ 		
+ 		BookshelfCell *cell = [self _dequeueBookshelfCell: tableView];
+@@ -725,6 +760,9 @@
+ 
+ - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath 
+ {
++    NSArray *subscribed = [[MLDataStore sharedInstance] allDownloadedBooks];
++    NSArray *available = [[MLDataStore sharedInstance] allAvailableBooks];
++
+ 	if(displayMode == 0)
+ 		return;
+ 	
+@@ -783,6 +821,9 @@
+ 
+ - (void)selectBookWithTag: (NSUInteger)tag
+ {
++    NSArray *subscribed = [[MLDataStore sharedInstance] allDownloadedBooks];
++    NSArray *available = [[MLDataStore sharedInstance] allAvailableBooks];
++
+ 	NSUInteger index = 0; 
+ 	
+ 	if(selectedTab == 0)
+@@ -833,7 +874,7 @@
+             [alert setTag:11];
+             [alert show];            
+         }
+-        [self refreshData];        
++        [controllerTableView reloadData];        
+ 	}
+ 	else if(selectedTab == 1)
+ 	{
+@@ -851,12 +892,18 @@
+ 							  autorelease];
+ 		[alert setTag:99];
+ 		[alert show];				
+-        [self refreshData];
++        [controllerTableView reloadData];
+ 	}
+ }
+ 
+ - (void) alertView: (UIAlertView *)alertView clickedButtonAtIndex: (NSInteger)index
+ {
++    if(alertView.tag == 66)
++    {
++        // Logout...
++        [[MLAPICommunicator sharedCommunicator] logout];
++    }
++
+ 	if(alertView.tag == 99)
+ 	{
+ 		// Add code to send request here...
+@@ -1071,8 +1118,8 @@
+         [pvc release];
+         [loadingView removeView];
+         loadingView = nil;
+-        
+-        [self refreshData];
++        [controllerTableView reloadData];
++        // [self refreshData];
+     }
+     else
+     {
+@@ -1084,9 +1131,8 @@
+         [pvc release];
+         [loadingView removeView];
+         loadingView = nil;
+-        
+-        [self refreshData];
+-        
++        [controllerTableView reloadData];
++        // [self refreshData];        
+     }
+ }
+ 
+Index: Mosaic eReader/Classes/MLDataStore.m
+===================================================================
+--- Mosaic eReader/Classes/MLDataStore.m	(revision 58)
++++ Mosaic eReader/Classes/MLDataStore.m	(working copy)
+@@ -564,8 +564,9 @@
+ 	if(storageFile != nil)
+ 	{
+ 		[NSKeyedArchiver archiveRootObject: dataStorage
+-									toFile: storageFile];
++									toFile: storageFile];        
+ 	}
++    [self saveContext];
+ }
+ 
+ - (void) dealloc

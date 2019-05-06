@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model name="" userDefinedModelVersionIdentifier="" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="562" systemVersion="11A511" minimumToolsVersion="Automatic" macOSVersion="Automatic" iOSVersion="Automatic">
+    <entity name="Book" representedClassName="MLBook">
+        <attribute name="bookData" optional="YES" attributeType="Binary"/>
+        <attribute name="bookId" optional="YES" attributeType="String" indexed="YES"/>
+        <attribute name="drmId" optional="YES" attributeType="String"/>
+        <attribute name="thumbnailUrl" optional="YES" attributeType="String"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <attribute name="version" optional="YES" attributeType="String"/>
+        <relationship name="bookmarks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Bookmark"/>
+        <relationship name="notes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Note"/>
+    </entity>
+    <entity name="BookData" representedClassName="BookData">
+        <attribute name="bookData" optional="YES" attributeType="Binary"/>
+        <attribute name="bookId" optional="YES" attributeType="String" indexed="YES"/>
+    </entity>
+    <entity name="BookKey" representedClassName="BookKey">
+        <attribute name="bookId" optional="YES" attributeType="String" indexed="YES"/>
+        <attribute name="key" optional="YES" attributeType="String" indexed="YES"/>
+    </entity>
+    <entity name="Bookmark" representedClassName="Bookmark">
+        <attribute name="bookId" optional="YES" attributeType="String" indexed="YES"/>
+        <attribute name="pageNumber" optional="YES" attributeType="Integer 32" defaultValueString="0"/>
+    </entity>
+    <entity name="CachedSearch" representedClassName="CachedSearch">
+        <attribute name="bookId" optional="YES" attributeType="String" indexed="YES"/>
+        <attribute name="resultsData" optional="YES" attributeType="Binary"/>
+        <attribute name="searchTerm" optional="YES" attributeType="String" indexed="YES"/>
+    </entity>
+    <entity name="CoverArt" representedClassName="CoverArt">
+        <attribute name="bookId" optional="YES" attributeType="String" indexed="YES"/>
+        <attribute name="data" optional="YES" attributeType="Binary"/>
+    </entity>
+    <entity name="Note" representedClassName="Note">
+        <attribute name="bookId" optional="YES" attributeType="String" indexed="YES"/>
+        <attribute name="content" optional="YES" attributeType="String"/>
+        <attribute name="pageNumber" optional="YES" attributeType="Integer 32" defaultValueString="0" indexed="YES"/>
+    </entity>
+    <entity name="Page">
+        <attribute name="bookId" optional="YES" attributeType="String" indexed="YES"/>
+        <attribute name="content" optional="YES" attributeType="String"/>
+        <attribute name="pageNumber" optional="YES" attributeType="Integer 32" defaultValueString="0" indexed="YES"/>
+    </entity>
+    <entity name="Path" representedClassName="Path">
+        <attribute name="bookId" optional="YES" attributeType="String" indexed="YES"/>
+        <attribute name="path" optional="YES" attributeType="Binary"/>
+    </entity>
+    <entity name="Session" representedClassName="Session">
+        <attribute name="accessDate" optional="YES" attributeType="Date"/>
+        <attribute name="password" optional="YES" attributeType="String" indexed="YES"/>
+        <attribute name="sessionId" optional="YES" attributeType="String"/>
+        <attribute name="userId" optional="YES" attributeType="String" indexed="YES"/>
+    </entity>
+    <entity name="User" representedClassName="User">
+        <attribute name="password" optional="YES" attributeType="String"/>
+        <attribute name="userId" optional="YES" attributeType="String"/>
+        <relationship name="availableBooks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Book"/>
+        <relationship name="notAvailableBooks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Book"/>
+        <relationship name="userBooks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Book"/>
+    </entity>
+    <elements>
+        <element name="Book" positionX="7576" positionY="-3987" width="128" height="135"/>
+        <element name="BookData" positionX="160" positionY="192" width="128" height="75"/>
+        <element name="BookKey" positionX="160" positionY="192" width="128" height="75"/>
+        <element name="Bookmark" positionX="160" positionY="192" width="128" height="75"/>
+        <element name="CachedSearch" positionX="160" positionY="192" width="128" height="90"/>
+        <element name="CoverArt" positionX="160" positionY="192" width="128" height="75"/>
+        <element name="Note" positionX="160" positionY="192" width="128" height="90"/>
+        <element name="Page" positionX="160" positionY="192" width="128" height="90"/>
+        <element name="Path" positionX="160" positionY="192" width="128" height="75"/>
+        <element name="Session" positionX="7128" positionY="-3966" width="128" height="105"/>
+        <element name="User" positionX="160" positionY="192" width="128" height="120"/>
+    </elements>
+</model>

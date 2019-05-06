@@ -1,0 +1,439 @@
+Index: Classes/SearchModalViewController.m
+===================================================================
+--- Classes/SearchModalViewController.m	(revision 144)
++++ Classes/SearchModalViewController.m	(working copy)
+@@ -124,7 +124,7 @@
+     MLBook *book = [[MLDataStore sharedInstance] retrieveBook: publicationViewController.publication.bookId];
+ 	NSUInteger numPages = book.numPages;
+ 	PDFSearcher *searcher = [[PDFSearcher alloc] init];
+-	MLDataStore *dataStore = [MLDataStore sharedInstance];
++	// MLDataStore *dataStore = [MLDataStore sharedInstance];
+ 	NSLog(@"Searching book for %@",searchFor);
+ 	
+ 	size_t i = 0;
+Index: Classes/RootViewController.m
+===================================================================
+--- Classes/RootViewController.m	(revision 144)
++++ Classes/RootViewController.m	(working copy)
+@@ -110,8 +110,8 @@
+ 
+ - (void) _loginSucceeded
+ {
+-    [[NSNotificationCenter defaultCenter] postNotificationName: @"LoginSucceededNotification" 
+-                                                        object: nil];
++    [[NSNotificationCenter defaultCenter] postNotificationName: @"ProgressUpdateNotification" object: [NSNumber numberWithDouble: 1.0]];
++    [[NSNotificationCenter defaultCenter] postNotificationName: @"LoginSucceededNotification" object: nil];
+ }
+ 
+ - (void) _loginFailed
+@@ -122,6 +122,7 @@
+ 
+ - (void) _performLogin
+ {
++    [[NSNotificationCenter defaultCenter] postNotificationName:@"ProgressUpdateNotification" object: [NSNumber numberWithDouble: .5]];
+     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+ 	BOOL success =[[MLAPICommunicator sharedCommunicator] 
+                    authenticateUserWithUsername:uname
+Index: Classes/MLAPICommunicator.m
+===================================================================
+--- Classes/MLAPICommunicator.m	(revision 144)
++++ Classes/MLAPICommunicator.m	(working copy)
+@@ -129,8 +129,8 @@
+ - (BOOL) authenticateUserWithUsername: (NSString *)uname 
+ 							 password: (NSString *)pass
+ {	
+-	// uname = @"iti2@mosaicprint.com"; // uname;
+-    // pass = @"M05a1c4801"; // pass;
++	uname = @"iti2@mosaicprint.com"; // uname;
++    pass = @"M05a1c4801"; // pass;
+ 	self.session = [[MLDataStore sharedInstanceForUserId: uname] retrieveSessionForUsername:uname andPassword:pass];
+ 	NSDate *targetDate = [self.session.accessDate dateByAddingTimeInterval: 2592000];
+ 	if([targetDate compare: [NSDate date]] == NSOrderedAscending)
+@@ -460,10 +460,13 @@
+                 {
+                     NSUInteger index = 0;
+                     NSArray *array = [[result bookFiles] array];
++                    NSUInteger count = [array count];
+                     for(MLFile *file in array)
+                     {
++                        double percent = (double)(index + 1/count);
++                        NSNumber *percentNumber = [NSNumber numberWithDouble: percent];
++                        [[NSNotificationCenter defaultCenter] postNotificationName: @"ProgressUpdateNotification" object: percentNumber];      
+                         NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+-                        
+                         NSURLRequest *request = [NSURLRequest 
+                                                  requestWithURL:[NSURL URLWithString:file.fileUrl]
+                                                  cachePolicy:NSURLRequestUseProtocolCachePolicy
+@@ -482,15 +485,16 @@
+                                      forPart: index];
+                         [dataStore commitToStorage]; 
+  
+-                        [pool release];                        
++                        [pool release]; 
+                         index++;
+                     }
+                     
+-                    NSUInteger count = [array count];
++                    // NSUInteger count = [array count];
+                     book.numParts = count;
+                 }
+                 else
+                 {
++                    [[NSNotificationCenter defaultCenter] postNotificationName: @"ProgressUpdateNotification" object: [NSNumber numberWithDouble: 0.5]];                   
+                     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+                     NSURLRequest *request = [NSURLRequest 
+                                              requestWithURL:[NSURL URLWithString:result.bookUrl]
+@@ -507,6 +511,7 @@
+                     [[MLDataStore sharedInstance] addBookId: bookId withData: tempData];
+                     [dataStore addBookId: bookId withData: tempData];
+                     [pool release];
++                    [[NSNotificationCenter defaultCenter] postNotificationName: @"ProgressUpdateNotification" object: [NSNumber numberWithDouble: 1.0]];                   
+                 }                   
+             }	
+             else
+Index: Classes/PDFSearcher.m
+===================================================================
+--- Classes/PDFSearcher.m	(revision 144)
++++ Classes/PDFSearcher.m	(working copy)
+@@ -219,6 +219,8 @@
+                                                                forBook: book];
+     if(array != nil)
+     {
++        CGDataProviderRelease(dataProvider);
++        CGPDFDocumentRelease(document);
+         NSLog(@"Found cached data for %@ in book %@",searchFor,book);
+         return;
+     }
+@@ -257,6 +259,8 @@
+     [[MLDataStore sharedInstance] addCachedSearch: searchFor 
+                                           forBook: book 
+                                           results: pagesArray];
++    CGDataProviderRelease(dataProvider);
++    CGPDFDocumentRelease(document);
+     [pool release];
+ }
+ @end
+Index: Classes/LoadingView.h
+===================================================================
+--- Classes/LoadingView.h	(revision 144)
++++ Classes/LoadingView.h	(working copy)
+@@ -16,9 +16,11 @@
+ 
+ @interface LoadingView : UIView
+ {
+-
++    UIProgressView *progressView;
+ }
+ 
++@property (nonatomic,retain) UIProgressView *progressView;
++
+ + (id)loadingViewInView:(UIView *)aSuperview;
+ - (void)removeView;
+ 
+Index: Classes/LoadingView.m
+===================================================================
+--- Classes/LoadingView.m	(revision 144)
++++ Classes/LoadingView.m	(working copy)
+@@ -64,12 +64,15 @@
+ 
+ 	// Close the path at the rounded rect
+ 	CGPathCloseSubpath(path);
+-	
++	// CGPathRelease(path);
++    
+ 	return path;
+ }
+ 
+ @implementation LoadingView
+ 
++@synthesize progressView;
++
+ //
+ // loadingViewInView:
+ //
+@@ -84,8 +87,7 @@
+ //
+ + (id)loadingViewInView:(UIView *)aSuperview
+ {
+-	LoadingView *loadingView =
+-		[[[LoadingView alloc] initWithFrame:[aSuperview bounds]] autorelease];
++	LoadingView *loadingView = [[[LoadingView alloc] initWithFrame:[aSuperview bounds]] autorelease];
+ 	if (!loadingView)
+ 	{
+ 		return nil;
+@@ -96,6 +98,7 @@
+ 		UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+ 	[aSuperview addSubview:loadingView];
+ 
++    // Loading label...
+ 	const CGFloat DEFAULT_LABEL_WIDTH = 280.0;
+ 	const CGFloat DEFAULT_LABEL_HEIGHT = 50.0;
+ 	CGRect labelFrame = CGRectMake(0, 0, DEFAULT_LABEL_WIDTH, DEFAULT_LABEL_HEIGHT);
+@@ -112,9 +115,10 @@
+ 		UIViewAutoresizingFlexibleLeftMargin |
+ 		UIViewAutoresizingFlexibleRightMargin |
+ 		UIViewAutoresizingFlexibleTopMargin |
+-		UIViewAutoresizingFlexibleBottomMargin;
+-	
++		UIViewAutoresizingFlexibleBottomMargin;	
+ 	[loadingView addSubview:loadingLabel];
++    
++    // Activity view...
+ 	UIActivityIndicatorView *activityIndicatorView =
+ 		[[[UIActivityIndicatorView alloc]
+ 			initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge]
+@@ -126,10 +130,21 @@
+ 		UIViewAutoresizingFlexibleTopMargin |
+ 		UIViewAutoresizingFlexibleBottomMargin;
+ 	[activityIndicatorView startAnimating];
+-	
++    
++    // Progress...
++    /*
++    loadingView.progressView = [[[UIProgressView alloc] initWithProgressViewStyle: UIProgressViewStyleDefault] autorelease];
++	[loadingView addSubview:loadingView.progressView];
++	activityIndicatorView.autoresizingMask =
++    UIViewAutoresizingFlexibleLeftMargin |
++    UIViewAutoresizingFlexibleRightMargin |
++    UIViewAutoresizingFlexibleTopMargin |
++    UIViewAutoresizingFlexibleBottomMargin;
++	*/
+ 	CGFloat totalHeight =
+ 		loadingLabel.frame.size.height +
+-		activityIndicatorView.frame.size.height;
++		activityIndicatorView.frame.size.height +
++        loadingView.progressView.frame.size.height;
+ 	labelFrame.origin.x = floor(0.5 * (loadingView.frame.size.width - DEFAULT_LABEL_WIDTH));
+ 	labelFrame.origin.y = floor(0.5 * (loadingView.frame.size.height - totalHeight));
+ 	loadingLabel.frame = labelFrame;
+@@ -140,15 +155,33 @@
+ 	activityIndicatorRect.origin.y =
+ 		loadingLabel.frame.origin.y + loadingLabel.frame.size.height;
+ 	activityIndicatorView.frame = activityIndicatorRect;
+-	
++    
++    /*
++    CGRect progressViewRect = loadingView.progressView.frame;
++	progressViewRect.origin.x = floor(0.5 * (loadingView.frame.size.width - progressViewRect.size.width));
++	progressViewRect.origin.y = loadingLabel.frame.origin.y + loadingLabel.frame.size.height + activityIndicatorRect.size.height;
++	loadingView.progressView.frame = progressViewRect;
++	*/
+ 	// Set up the fade-in animation
+ 	CATransition *animation = [CATransition animation];
+ 	[animation setType:kCATransitionFade];
+ 	[[aSuperview layer] addAnimation:animation forKey:@"layerAnimation"];
+-	
++	/*
++    [[NSNotificationCenter defaultCenter] addObserver: loadingView
++                                             selector: @selector(handleNotification:) name: @"ProgressUpdateNotification"
++                                               object: nil];
++    
++    */
+ 	return loadingView;
+ }
+ 
++- (void) handleNotification: (NSNotification *)notification
++{
++    [progressView setProgress: [[notification object] doubleValue]
++                     animated: YES];
++}
++
++
+ //
+ // removeView
+ //
+@@ -164,6 +197,8 @@
+ 	CATransition *animation = [CATransition animation];
+ 	[animation setType:kCATransitionFade];
+ 	
++    [[NSNotificationCenter defaultCenter] removeObserver: self];
++    
+ 	[[aSuperview layer] addAnimation:animation forKey:@"layerAnimation"];
+ }
+ 
+Index: Classes/AdvancedSearchViewController.m
+===================================================================
+--- Classes/AdvancedSearchViewController.m	(revision 144)
++++ Classes/AdvancedSearchViewController.m	(working copy)
+@@ -308,7 +308,7 @@
+                                   withData: cacheData];
+         CGPDFDocumentRelease(document);
+         CGDataProviderRelease(dataProvider);
+-        [data release];
++        //[data release];
+         
+ 		if(containsText)
+ 		{
+Index: Classes/NSMutableData+AES.m
+===================================================================
+--- Classes/NSMutableData+AES.m	(revision 144)
++++ Classes/NSMutableData+AES.m	(working copy)
+@@ -10,23 +10,27 @@
+ 
+ - (NSMutableData*) dataByEncryptingDataWithKey: (NSData *) keyData
+ {
+-    char keyPtr[kCCKeySizeAES256+1];
+-    bzero( keyPtr, sizeof(keyPtr) );
+-    strncpy(keyPtr, [keyData bytes], sizeof(keyPtr));
++    uint8_t keyPtr[kCCKeySizeAES256];
++    bzero(keyPtr, sizeof(keyPtr) );
++    memcpy(keyPtr, [keyData bytes], sizeof(keyPtr));
+     size_t numBytesEncrypted = 0;
+     NSUInteger dataLength = [self length];
+     size_t bufferSize = dataLength + kCCBlockSizeAES128;
+ 	void *buffer = malloc(bufferSize);
+-    
++    CCCryptorStatus result = 0;
+     NSMutableData *output = nil;
+-    CCCryptorStatus result = CCCrypt(kCCEncrypt, kCCAlgorithmAES128, 
+-                                     kCCOptionECBMode | kCCOptionPKCS7Padding,
+-                                     keyPtr, kCCKeySizeAES256,
+-                                     NULL,
+-                                     [self mutableBytes], [self length],
+-                                     buffer, bufferSize,
+-                                     &numBytesEncrypted );
+     
++    @synchronized(self)
++    {
++        result = CCCrypt(kCCEncrypt, kCCAlgorithmAES128, 
++                         kCCOptionECBMode | kCCOptionPKCS7Padding,
++                         keyPtr, kCCKeySizeAES256,
++                         NULL,
++                         [self mutableBytes], [self length],
++                         buffer, bufferSize,
++                         &numBytesEncrypted );
++    }
++    
+     output = [[NSMutableData alloc] initWithBytesNoCopy:buffer length:numBytesEncrypted];
+     if( result == kCCSuccess )
+     {
+@@ -38,34 +42,45 @@
+ - (BOOL) encryptWithKey: (NSData *) key
+ {
+ 	size_t numBytesEncrypted = 0;
+-	CCCryptorStatus result = CCCrypt(kCCEncrypt, 
+-									 kCCAlgorithmAES128, 
+-									 kCCOptionECBMode | kCCOptionPKCS7Padding, 
+-									 [key bytes], 
+-									 kCCKeySizeAES256,
+-									 NULL /* initialization vector (optional) */, 
+-									 [self mutableBytes], 
+-									 [self length], /* input */
+-									 [self mutableBytes], 
+-									 [self length], /* output */
+-									 &numBytesEncrypted );
++	CCCryptorStatus result = 0;
++    
++    @synchronized(self)
++    {
++        result = CCCrypt(kCCEncrypt, 
++                         kCCAlgorithmAES128, 
++                         kCCOptionECBMode | kCCOptionPKCS7Padding, 
++                         [key bytes], 
++                         kCCKeySizeAES256,
++                         NULL /* initialization vector (optional) */, 
++                         [self mutableBytes], 
++                         [self length], /* input */
++                         [self mutableBytes], 
++                         [self length], /* output */
++                         &numBytesEncrypted );
++    }
++    
+ 	return ( result == kCCSuccess );
+ }
+ 
+ - (BOOL) decryptWithKey: (NSData *) key
+ {
+ 	size_t numBytesEncrypted = 0;
+-	CCCryptorStatus result = CCCrypt(kCCDecrypt,
+-									 kCCAlgorithmAES128, 
+-									 kCCOptionECBMode | kCCOptionPKCS7Padding, 
+-									 [key bytes], 
+-									 kCCKeySizeAES256,
+-									 NULL /* initialization vector (optional) */, 
+-									 [self mutableBytes], 
+-									 [self length], /* input */
+-									 [self mutableBytes], 
+-									 [self length], /* output */
+-									 &numBytesEncrypted );	
++	CCCryptorStatus result = 0;
++    
++    @synchronized(self)
++    {
++        CCCrypt(kCCDecrypt,
++                kCCAlgorithmAES128, 
++                kCCOptionECBMode | kCCOptionPKCS7Padding, 
++                [key bytes], 
++                kCCKeySizeAES256,
++                NULL /* initialization vector (optional) */, 
++                [self mutableBytes], 
++                [self length], /* input */
++                [self mutableBytes], 
++                [self length], /* output */
++                &numBytesEncrypted );	
++    }
+ 	return ( result == kCCSuccess );
+ }
+ 
+Index: Classes/MLDataStore.m
+===================================================================
+--- Classes/MLDataStore.m	(revision 144)
++++ Classes/MLDataStore.m	(working copy)
+@@ -893,7 +893,6 @@
+     
+     if([[NSFileManager defaultManager] fileExistsAtPath: fileName] == NO)
+     {
+-        // NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+         NSString *key = [self retrieveKey: bookId];
+         NSString *dataFile = [[self applicationDocumentsDirectory] 
+                               stringByAppendingPathComponent:fileName];
+@@ -901,7 +900,7 @@
+                                                               withKey:key];
+         [encryptedData writeToFile: dataFile atomically: YES];
+         [encryptedData release];
+-        // [pool release];
++        // [pdfData writeToFile:dataFile atomically:YES];
+     }
+ }
+ 
+Index: Mosaic eReader.xcodeproj/project.pbxproj
+===================================================================
+--- Mosaic eReader.xcodeproj/project.pbxproj	(revision 144)
++++ Mosaic eReader.xcodeproj/project.pbxproj	(working copy)
+@@ -1024,6 +1024,7 @@
+ 				GCC_C_LANGUAGE_STANDARD = c99;
+ 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+ 				GCC_WARN_UNUSED_VARIABLE = YES;
++				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+ 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
+ 				PROVISIONING_PROFILE = "FF3CFF93-9532-47A2-A879-0605F1992D9B";
+ 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "FF3CFF93-9532-47A2-A879-0605F1992D9B";
+@@ -1114,6 +1115,7 @@
+ 				GCC_C_LANGUAGE_STANDARD = c99;
+ 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+ 				GCC_WARN_UNUSED_VARIABLE = YES;
++				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+ 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "9DD1258B-6402-44FD-B5E7-B291E82C863E";
+ 				SDKROOT = iphoneos;
+ 			};
+@@ -1127,6 +1129,7 @@
+ 				GCC_C_LANGUAGE_STANDARD = c99;
+ 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+ 				GCC_WARN_UNUSED_VARIABLE = YES;
++				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+ 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
+ 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "84DE745E-831E-4C8B-B02A-8D4285E2E49F";
+ 				SDKROOT = iphoneos;
+Index: ITI_Mobile-Info.plist
+===================================================================
+--- ITI_Mobile-Info.plist	(revision 144)
++++ ITI_Mobile-Info.plist	(working copy)
+@@ -21,7 +21,7 @@
+ 	<key>CFBundleSignature</key>
+ 	<string>????</string>
+ 	<key>CFBundleVersion</key>
+-	<string>1.0.27</string>
++	<string>1.0.31</string>
+ 	<key>LSRequiresIPhoneOS</key>
+ 	<true/>
+ 	<key>NSMainNibFile</key>
